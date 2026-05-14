@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Netwerkverkeer Fluisteraar</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- SCANLINES OVERLAY -->
+  <div class="scanlines"></div>
+  <div class="noise-overlay"></div>
+
+  <!-- HEADER -->
+  <header class="main-header">
+    <div class="header-left">
+      <div class="logo-block">
+        <div class="logo-icon">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="16" stroke="#00ff9d" stroke-width="1.5" stroke-dasharray="4 2"/>
+            <circle cx="18" cy="18" r="8" stroke="#00ff9d" stroke-width="1"/>
+            <circle cx="18" cy="18" r="3" fill="#00ff9d"/>
+            <line x1="18" y1="2" x2="18" y2="10" stroke="#00ff9d" stroke-width="1.5"/>
+            <line x1="18" y1="26" x2="18" y2="34" stroke="#00ff9d" stroke-width="1.5"/>
+            <line x1="2" y1="18" x2="10" y2="18" stroke="#00ff9d" stroke-width="1.5"/>
+            <line x1="26" y1="18" x2="34" y2="18" stroke="#00ff9d" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-main">FLUISTERAAR</span>
+          <span class="logo-sub">NETWERKVERKEER MONITOR v1.0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="status-bar">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-label">VERBINDEN...</span>
+        <span class="separator">|</span>
+        <span id="scan-time">--:--:--</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button class="btn-scan" id="btn-scan" onclick="triggerScan()">
+        <span class="btn-icon">⬡</span>
+        <span>SCAN UITVOEREN</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <main class="main-grid">
+
+    <!-- LEFT PANEL: Stats + Devices -->
+    <aside class="panel panel-left">
+
+      <!-- METRICS ROW -->
+      <div class="metrics-row">
+        <div class="metric-card" id="metric-total">
+          <div class="metric-value" id="val-total">--</div>
+          <div class="metric-label">VERBINDINGEN</div>
+          <div class="metric-bar"><div class="metric-fill" id="fill-total"></div></div>
+        </div>
+        <div class="metric-card danger" id="metric-foreign">
+          <div class="metric-value" id="val-foreign">--</div>
+          <div class="metric-label">BUITENLANDS</div>
+          <div class="metric-bar"><div class="metric-fill" id="fill-foreign"></div></div>
+        </div>
+        <div class="metric-card alert" id="metric-risk">
+          <div class="metric-value" id="val-risk">--</div>
+          <div class="metric-label">HOOG RISICO</div>
+          <div class="metric-bar"><div class="metric-fill" id="fill-risk"></div></div>
+        </div>
+      </div>
+
+      <!-- GLOBE VISUALIZER -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span class="panel-title">WERELDKAART SIGNALEN</span>
+          <span class="panel-badge" id="globe-count">0 ACTIEF</span>
+        </div>
+        <div class="globe-container" id="globe-container">
+          <canvas id="globe-canvas"></canvas>
+          <div class="globe-overlay-text">LIVE SIGNALEN</div>
+        </div>
+      </div>
+
+      <!-- COUNTRY BREAKDOWN -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span class="panel-title">LANDEN ANALYSE</span>
+        </div>
+        <div class="country-list" id="country-list">
+          <div class="loading-bar"><div class="loading-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- LAN DEVICES -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span class="panel-title">NETWERK APPARATEN</span>
+          <span class="panel-badge" id="device-count">0 GEVONDEN</span>
+        </div>
+        <div class="device-list" id="device-list"></div>
+      </div>
+
+    </aside>
+
+    <!-- CENTER PANEL: Connection table -->
+    <section class="panel panel-center">
+      <div class="panel-header sticky-header">
+        <span class="panel-title">VERBINDINGSMONITOR</span>
+        <div class="filter-row">
+          <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">ALLES</button>
+          <button class="filter-btn" data-filter="foreign" onclick="setFilter('foreign', this)">BUITENLANDS</button>
+          <button class="filter-btn" data-filter="HIGH" onclick="setFilter('HIGH', this)">HOOG RISICO</button>
+          <button class="filter-btn" data-filter="MEDIUM" onclick="setFilter('MEDIUM', this)">MEDIUM</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="conn-table" id="conn-table">
+          <thead>
+            <tr>
+              <th>RISICO</th>
+              <th>APPARAAT</th>
+              <th>PROTOCOL</th>
+              <th>EXTERN IP</th>
+              <th>POORT</th>
+              <th>LAND</th>
+              <th>ORGANISATIE</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody id="conn-tbody">
+            <tr class="loading-row">
+              <td colspan="8">
+                <div class="terminal-loader">
+                  <span class="tl-prefix">&gt;&gt; </span>
+                  <span class="tl-text" id="loader-text">INITIALISEREN...</span>
+                  <span class="tl-cursor">█</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ALERT LOG -->
+      <div class="alert-log" id="alert-log">
+        <div class="alert-log-header">
+          <span>▶ GEBEURTENISSEN LOG</span>
+          <button class="btn-clear" onclick="clearLog()">WISSEN</button>
+        </div>
+        <div class="log-entries" id="log-entries"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Detail view -->
+    <aside class="panel panel-right">
+      <div class="panel-header">
+        <span class="panel-title">VERBINDING DETAIL</span>
+      </div>
+
+      <div id="detail-empty" class="detail-empty">
+        <div class="detail-empty-icon">◉</div>
+        <p>Selecteer een verbinding<br/>voor details</p>
+      </div>
+
+      <div id="detail-content" class="detail-content hidden">
+        <div class="detail-risk-badge" id="detail-risk">--</div>
+
+        <div class="detail-section">
+          <div class="detail-label">EXTERN HOST</div>
+          <div class="detail-value" id="d-hostname">--</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">IP ADRES</div>
+          <div class="detail-value mono" id="d-ip">--</div>
+        </div>
+        <div class="detail-section two-col">
+          <div>
+            <div class="detail-label">POORT</div>
+            <div class="detail-value mono" id="d-port">--</div>
+          </div>
+          <div>
+            <div class="detail-label">PROTOCOL</div>
+            <div class="detail-value mono" id="d-proto">--</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">LAND</div>
+          <div class="detail-value" id="d-country">--</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">ORGANISATIE</div>
+          <div class="detail-value" id="d-org">--</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">LOKAAL PROCES</div>
+          <div class="detail-value mono" id="d-process">--</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">VERBINDING STATUS</div>
+          <div class="detail-value" id="d-state">--</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">TIJDSTEMPEL</div>
+          <div class="detail-value mono" id="d-time">--</div>
+        </div>
+
+        <div class="detail-map" id="detail-map">
+          <canvas id="mini-map"></canvas>
+          <div class="map-pin" id="map-pin">◆</div>
+        </div>
+
+        <div class="detail-actions">
+          <button class="btn-action" onclick="blockConnection()">⊘ BLOKKEREN</button>
+          <button class="btn-action secondary" onclick="traceRoute()">⇢ TRACEROUTE</button>
+        </div>
+
+        <div id="traceroute-output" class="traceroute-output hidden"></div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- SCRIPTS -->
+  <script src="ui.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
